@@ -75,12 +75,14 @@ with app.app_context():
 from routes.auth         import auth_bp
 from routes.dashboard    import dashboard_bp
 from routes.transactions import transactions_bp
+from routes.transfer     import transfer_bp
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(dashboard_bp)
 app.register_blueprint(transactions_bp)
+app.register_blueprint(transfer_bp)
 
-logger.info("Blueprints registered: auth, dashboard, transactions")
+logger.info("Blueprints registered: auth, dashboard, transactions, transfer")
 
 # ---------------------------------------------------------------------------
 # Root route — redirect visitors straight to /login.

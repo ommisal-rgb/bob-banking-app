@@ -38,6 +38,9 @@
     <a href="{{ url_for('transactions.withdraw_route') }}" class="btn btn-outline-secondary px-4">
       <i class="bi bi-arrow-up-circle me-2"></i>Withdraw
     </a>
+    <a href="{{ url_for('transfer.transfer_route') }}" class="btn btn-success px-4">
+      <i class="bi bi-send me-2"></i>Send Money
+    </a>
   </div>
 
   <!-- Recent transactions -->
@@ -52,6 +55,7 @@
           <tr>
             <th scope="col">Type</th>
             <th scope="col">Amount</th>
+            <th scope="col">Counterparty</th>
             <th scope="col">Date &amp; Time</th>
           </tr>
         </thead>
@@ -63,17 +67,32 @@
                 <span class="badge bg-success-subtle text-success border border-success-subtle">
                   <i class="bi bi-arrow-down me-1"></i>Deposit
                 </span>
-              {% else %}
+              {% elif txn.type == 'withdrawal' %}
                 <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
                   <i class="bi bi-arrow-up me-1"></i>Withdrawal
+                </span>
+              {% elif txn.type == 'transfer_out' %}
+                <span class="badge bg-warning-subtle text-warning border border-warning-subtle">
+                  <i class="bi bi-send me-1"></i>Sent
+                </span>
+              {% elif txn.type == 'transfer_in' %}
+                <span class="badge bg-info-subtle text-info border border-info-subtle">
+                  <i class="bi bi-send-fill me-1"></i>Received
                 </span>
               {% endif %}
             </td>
             <td class="fw-medium">
-              {% if txn.type == 'deposit' %}
+              {% if txn.type in ('deposit', 'transfer_in') %}
                 <span class="text-success">+£{{ "%.2f"|format(txn.amount) }}</span>
               {% else %}
                 <span class="text-danger">-£{{ "%.2f"|format(txn.amount) }}</span>
+              {% endif %}
+            </td>
+            <td class="text-muted small">
+              {% if txn.related_user %}
+                <i class="bi bi-person me-1"></i>{{ txn.related_user }}
+              {% else %}
+                —
               {% endif %}
             </td>
             <td class="text-muted small">{{ txn.timestamp[:19]|replace('T', ' ') }}</td>

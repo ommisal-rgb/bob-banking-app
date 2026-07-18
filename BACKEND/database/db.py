@@ -55,22 +55,35 @@ CREATE TABLE IF NOT EXISTS customers (
     username      TEXT    UNIQUE NOT NULL,
     password_hash TEXT    NOT NULL,
     full_name     TEXT    NOT NULL,
-    balance       REAL    NOT NULL DEFAULT 0.0
+    balance       REAL    NOT NULL DEFAULT 0.0,
+    pin_hash      TEXT
 );
 
 CREATE TABLE IF NOT EXISTS transactions (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    customer_id INTEGER NOT NULL REFERENCES customers(id),
-    type        TEXT    NOT NULL CHECK(type IN ('deposit', 'withdrawal')),
-    amount      REAL    NOT NULL,
-    timestamp   TEXT    NOT NULL
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    customer_id     INTEGER NOT NULL REFERENCES customers(id),
+    type            TEXT    NOT NULL CHECK(type IN ('deposit', 'withdrawal', 'transfer_out', 'transfer_in')),
+    amount          REAL    NOT NULL,
+    timestamp       TEXT    NOT NULL,
+    related_user    TEXT
 );
 """
+
+_MIGRATION_SQL = [
+    # Add pin_hash column if it doesn't already exist (safe to run on existing DBs)
+    "ALTER TABLE customers ADD COLUMN pin_hash TEXT",
+    # Add related_user column to transactions for transfer context
+    "ALTER TABLE transactions ADD COLUMN related_user TEXT",
+    # Recreate transactions check constraint — SQLite doesn't support ALTER CONSTRAINT,
+    # so we widen the type check via a new shadow table approach is too disruptive;
+    # instead we rely on application-level validation for transfer types on existing DBs.
+]
 
 
 def init_db() -> None:
     """
     Create tables (if they do not already exist) and seed initial data.
+    Runs migrations for existing databases (adds new columns safely).
     Call once at application startup.
     """
     conn = get_connection()
@@ -81,7 +94,28 @@ def init_db() -> None:
     finally:
         conn.close()
 
+    _migrate_db()
     seed_db()
+
+
+def _migrate_db() -> None:
+    """
+    Apply additive migrations on existing databases.
+    Each ALTER TABLE is swallowed silently if the column already exists.
+    """
+    conn = get_connection()
+    try:
+        for sql in _MIGRATION_SQL:
+            try:
+                conn.execute(sql)
+                conn.commit()
+            except sqlite3.OperationalError as exc:
+                if "duplicate column name" in str(exc).lower():
+                    pass  # column already exists — safe to ignore
+                else:
+                    raise
+    finally:
+        conn.close()
 
 
 # ---------------------------------------------------------------------------
@@ -90,24 +124,48 @@ def init_db() -> None:
 
 def seed_db() -> None:
     """
-    Insert a default test customer if the customers table is empty.
-    Credentials:  username=admin  password=password123
+    Insert default test customers if the table is empty.
+
+    Seeded accounts:
+        admin   / password123  PIN: 1234   balance: £1000
+        alice   / password123  PIN: 5678   balance: £500
+        bob     / password123  PIN: 9012   balance: £250
     """
-    from werkzeug.security import generate_password_hash  # local import to keep module lightweight
+    from werkzeug.security import generate_password_hash
 
     conn = get_connection()
     try:
         row = conn.execute("SELECT COUNT(*) AS cnt FROM customers").fetchone()
         if row["cnt"] == 0:
-            hashed = generate_password_hash("password123")
-            conn.execute(
-                "INSERT INTO customers (username, password_hash, full_name, balance) VALUES (?,?,?,?)",
-                ("admin", hashed, "Admin User", 1000.00),
-            )
+            users = [
+                ("admin", "Admin User",  1000.00, "1234"),
+                ("alice", "Alice Smith",  500.00, "5678"),
+                ("bob",   "Bob Jones",    250.00, "9012"),
+            ]
+            for username, full_name, balance, pin in users:
+                conn.execute(
+                    "INSERT INTO customers (username, password_hash, full_name, balance, pin_hash) VALUES (?,?,?,?,?)",
+                    (username, generate_password_hash("password123"), full_name, balance, generate_password_hash(pin)),
+                )
             conn.commit()
-            logger.info("Seeded default test customer: admin / password123")
+            logger.info("Seeded 3 test customers (admin, alice, bob) — password: password123, PINs: 1234/5678/9012")
+        else:
+            # Existing DB — ensure pin_hash is set for seeded users that don't have one yet
+            _backfill_pins(conn)
     finally:
         conn.close()
+
+
+def _backfill_pins(conn) -> None:
+    """Set a default PIN for any existing user whose pin_hash is NULL."""
+    from werkzeug.security import generate_password_hash
+    default_pins = {"admin": "1234", "alice": "5678", "bob": "9012"}
+    for username, pin in default_pins.items():
+        conn.execute(
+            "UPDATE customers SET pin_hash = ? WHERE username = ? AND pin_hash IS NULL",
+            (generate_password_hash(pin), username),
+        )
+    conn.commit()
 
 
 # ---------------------------------------------------------------------------

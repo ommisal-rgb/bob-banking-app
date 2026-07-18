@@ -52,3 +52,7 @@ footer {
     padding: 1.5rem !important;
   }
 }
+
+/* ---------- Transfer badge colour variants ---------- */
+.bg-warning-subtle { background-color: #fff3cd !important; }
+.bg-info-subtle    { background-color: #cff4fc !important; }

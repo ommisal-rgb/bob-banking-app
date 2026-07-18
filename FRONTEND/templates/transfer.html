@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block title %}Send Money{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-12 col-sm-10 col-md-7 col-lg-6 col-xl-5">
+
+      <div class="card border-0 shadow-sm">
+        <div class="card-body p-4 p-md-5">
+
+          <!-- Heading -->
+          <div class="text-center mb-4">
+            <div class="display-5 text-primary mb-2">
+              <i class="bi bi-send-fill"></i>
+            </div>
+            <h1 class="h4 fw-semibold text-dark">Send Money</h1>
+            <p class="text-muted small mb-0">Transfer funds to a colleague instantly.</p>
+          </div>
+
+          <form method="POST" action="{{ url_for('transfer.transfer_route') }}" novalidate>
+
+            <!-- Recipient username -->
+            <div class="mb-3">
+              <label for="recipient" class="form-label fw-medium">Recipient Username</label>
+              <div class="input-group">
+                <span class="input-group-text bg-light"><i class="bi bi-person-fill"></i></span>
+                <input
+                  type="text"
+                  id="recipient"
+                  name="recipient"
+                  class="form-control"
+                  placeholder="e.g. alice"
+                  value="{{ recipient | default('') }}"
+                  autocomplete="off"
+                  required
+                  autofocus
+                >
+              </div>
+              <!-- Live name preview injected here by JS -->
+              <div id="recipient-preview" class="form-text mt-1"></div>
+            </div>
+
+            <!-- Amount -->
+            <div class="mb-3">
+              <label for="amount" class="form-label fw-medium">Amount (£)</label>
+              <div class="input-group input-group-lg">
+                <span class="input-group-text bg-light fw-bold">£</span>
+                <input
+                  type="number"
+                  id="amount"
+                  name="amount"
+                  class="form-control"
+                  placeholder="0.00"
+                  value="{{ amount | default('') }}"
+                  step="0.01"
+                  min="0.01"
+                  max="10000"
+                  required
+                >
+              </div>
+              <div class="form-text text-muted">Max single transfer: £10,000.00</div>
+            </div>
+
+            <!-- PIN -->
+            <div class="mb-4">
+              <label for="pin" class="form-label fw-medium">Your 4-digit PIN</label>
+              <div class="input-group">
+                <span class="input-group-text bg-light"><i class="bi bi-shield-lock-fill"></i></span>
+                <input
+                  type="password"
+                  id="pin"
+                  name="pin"
+                  class="form-control"
+                  placeholder="••••"
+                  maxlength="4"
+                  minlength="4"
+                  pattern="\d{4}"
+                  inputmode="numeric"
+                  autocomplete="off"
+                  required
+                >
+              </div>
+              <div class="form-text text-muted">
+                Your PIN authorises this transfer. Default PIN: <code>1234</code> (admin).
+              </div>
+            </div>
+
+            <!-- Confirmation summary (shown by JS once all fields are filled) -->
+            <div id="transfer-summary" class="alert alert-primary d-none mb-4 small" role="status">
+              <i class="bi bi-info-circle me-1"></i>
+              You are about to send <strong id="summary-amount"></strong>
+              to <strong id="summary-name"></strong>.
+            </div>
+
+            <div class="d-grid gap-2">
+              <button type="submit" class="btn btn-primary btn-lg">
+                <i class="bi bi-send me-2"></i>Send Money
+              </button>
+              <a href="{{ url_for('dashboard.dashboard') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+              </a>
+            </div>
+
+          </form>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const recipientInput = document.getElementById('recipient');
+  const amountInput    = document.getElementById('amount');
+  const preview        = document.getElementById('recipient-preview');
+  const summary        = document.getElementById('transfer-summary');
+  const summaryAmount  = document.getElementById('summary-amount');
+  const summaryName    = document.getElementById('summary-name');
+
+  let resolvedName = '';
+  let debounceTimer = null;
+
+  function updateSummary() {
+    const amt = parseFloat(amountInput.value);
+    if (resolvedName && amt > 0) {
+      summaryAmount.textContent = '£' + amt.toFixed(2);
+      summaryName.textContent   = resolvedName;
+      summary.classList.remove('d-none');
+    } else {
+      summary.classList.add('d-none');
+    }
+  }
+
+  recipientInput.addEventListener('input', function () {
+    clearTimeout(debounceTimer);
+    const val = this.value.trim();
+    if (!val) {
+      preview.innerHTML = '';
+      resolvedName = '';
+      updateSummary();
+      return;
+    }
+    debounceTimer = setTimeout(function () {
+      fetch('/transfer/lookup?username=' + encodeURIComponent(val))
+        .then(r => r.json())
+        .then(data => {
+          if (data.found) {
+            resolvedName = data.full_name;
+            preview.innerHTML =
+              '<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>' +
+              data.full_name + '</span>';
+          } else {
+            resolvedName = '';
+            preview.innerHTML = val.length > 1
+              ? '<span class="text-danger"><i class="bi bi-x-circle-fill me-1"></i>Username not found</span>'
+              : '';
+          }
+          updateSummary();
+        })
+        .catch(() => { preview.innerHTML = ''; resolvedName = ''; });
+    }, 400);
+  });
+
+  amountInput.addEventListener('input', updateSummary);
+})();
+</script>
+{% endblock %}

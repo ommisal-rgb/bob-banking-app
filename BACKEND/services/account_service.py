@@ -66,7 +66,7 @@ def get_transactions(customer_id: int) -> list[dict]:
     """Return all transactions for *customer_id*, most recent first."""
     from database.db import get_many
     return get_many(
-        "SELECT type, amount, timestamp FROM transactions "
+        "SELECT type, amount, timestamp, related_user FROM transactions "
         "WHERE customer_id = ? ORDER BY id DESC",
         (customer_id,)
     )
