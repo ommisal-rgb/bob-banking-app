@@ -1,0 +1,54 @@
+/* =========================================================
+   FRONTEND/static/css/custom.css
+   Custom styles layered on top of Bootstrap 5.
+   ========================================================= */
+
+/* ---------- Typography helpers ---------- */
+.tracking-wide {
+  letter-spacing: 0.05em;
+}
+
+/* ---------- Navbar ---------- */
+.navbar-brand {
+  font-size: 1.25rem;
+}
+
+/* ---------- Cards ---------- */
+.card {
+  border-radius: 0.75rem;
+}
+
+/* ---------- Balance display ---------- */
+.fs-2 {
+  font-size: 2rem !important;
+}
+
+/* ---------- Input groups ---------- */
+.input-group-text {
+  font-size: 0.95rem;
+}
+
+/* ---------- Table tweaks ---------- */
+.table th {
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6c757d;
+}
+
+/* ---------- Badge colour variants (Bootstrap 5.3+) ---------- */
+.bg-success-subtle { background-color: #d1e7dd !important; }
+.bg-danger-subtle  { background-color: #f8d7da !important; }
+
+/* ---------- Footer ---------- */
+footer {
+  font-size: 0.8rem;
+}
+
+/* ---------- Responsive utilities ---------- */
+@media (max-width: 576px) {
+  .card-body {
+    padding: 1.5rem !important;
+  }
+}
