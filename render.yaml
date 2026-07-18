@@ -1,0 +1,30 @@
+# render.yaml — Render Blueprint for bob-banking-app
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: bob-banking-app
+    runtime: python
+    region: oregon
+    plan: free
+
+    # Render checks out the repo root; we point build/start commands at BACKEND/
+    buildCommand: "pip install -r BACKEND/requirements.txt"
+    startCommand: "gunicorn --chdir BACKEND app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120"
+
+    # Environment variables set at deploy time
+    envVars:
+      - key: FLASK_DEBUG
+        value: "False"
+      - key: SESSION_COOKIE_SECURE
+        value: "True"
+      - key: SECRET_KEY
+        generateValue: true          # Render generates a random secure value automatically
+      - key: DATABASE_PATH
+        value: "/opt/render/project/src/BACKEND/database/banking.db"
+
+    # Persist the SQLite database file across deploys
+    disk:
+      name: banking-db
+      mountPath: /opt/render/project/src/BACKEND/database
+      sizeGB: 1

@@ -35,7 +35,7 @@ DATABASE_PATH = os.environ.get(
 # ---------------------------------------------------------------------------
 # Flask debug flag — must be False in any non-development environment.
 # ---------------------------------------------------------------------------
-DEBUG = os.environ.get("FLASK_DEBUG", "True").lower() in ("true", "1", "yes")
+DEBUG = os.environ.get("FLASK_DEBUG", "False").lower() in ("true", "1", "yes")
 
 # ---------------------------------------------------------------------------
 # Session lifetime — how long a "remember me" session stays alive.
@@ -47,5 +47,5 @@ PERMANENT_SESSION_LIFETIME = timedelta(minutes=30)
 # ---------------------------------------------------------------------------
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
-# Set to True only when HTTPS is available (production)
-SESSION_COOKIE_SECURE = False
+# True when running behind HTTPS (Render always serves HTTPS)
+SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", "False").lower() in ("true", "1", "yes")
