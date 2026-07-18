@@ -1,0 +1,33 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Database
+*.db
+*.sqlite3
+
+# Environment
+.env
+.env.*
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Bob / IDE
+.bob/
+.vscode/
+.idea/
+
+# Docs / setup artefacts
+docs/
+mcp-github-template.json
+
+# OS
+.DS_Store
+Thumbs.db
